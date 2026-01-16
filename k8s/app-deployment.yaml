@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-app
+  namespace: app
+  labels:
+    app: nodejs-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      containers:
+        - name: nodejs-app
+          image: nodejs-shopping-app:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            # Node environment
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            
+            # Redis configuration
+            - name: REDIS_HOST
+              value: "redis-service.redis.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
+
+            # MongoDB configuration
+            - name: MONGODB_URI
+              value: "mongodb://admin:password123@mongo-service:27017/shopping?authSource=admin"
+            
+            # Optional MongoDB fallback env vars (if your app uses these)
+            - name: MONGO_USER
+              value: "admin"
+            - name: MONGO_PWD
+              value: "password123"
+            - name: MONGO_DB
+              value: "shopping"
+
+          # Resource limits
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+
+          # Health checks
+          #          livenessProbe:
+          #            httpGet:
+          #              path: /
+          #            port: 3000
+          #            initialDelaySeconds: 30
+          #            periodSeconds: 20
+          #            failureThreshold: 3
+          #          readinessProbe:
+          #            httpGet:
+          #              path: /
+          #              port: 3000
+          #            initialDelaySeconds: 15
+          #            periodSeconds: 10
+          #            failureThreshold: 3

@@ -1,0 +1,49 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nodejs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+  
+  mongodb:
+    image: mongo:7
+    container_name: nodejs-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=shopping
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - app-network
+  
+  app:
+    build: .
+    container_name: nodejs-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3000
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/shopping?authSource=admin
+    depends_on:
+      - redis
+      - mongodb
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  mongodb-data:

@@ -1,0 +1,40 @@
+name: Deploy to Minikube
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Build Docker image
+      run: |
+        docker build -t nodejs-shopping:${{ github.sha }} .
+        docker save nodejs-shopping:${{ github.sha }} -o nodejs-app.tar
+    
+    - name: Copy to server
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.MINIKUBE_HOST }}
+        username: ${{ secrets.MINIKUBE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "nodejs-app.tar,k8s/*"
+        target: "/tmp/"
+    
+    - name: Deploy to Minikube
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.MINIKUBE_HOST }}
+        username: ${{ secrets.MINIKUBE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          eval $(minikube docker-env)
+          docker load -i /tmp/nodejs-app.tar
+          kubectl set image deployment/nodejs-app nodejs-app=nodejs-shopping:${{ github.sha }} -n app
+          kubectl rollout status deployment/nodejs-app -n app
